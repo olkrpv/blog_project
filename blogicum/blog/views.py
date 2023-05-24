@@ -74,13 +74,6 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('blog:index')
 
 
-def edit_profile(request):
-    template_name = 'blog/user.html'
-    form = UserForm
-    context = {'form': form}
-    return render(request, template_name, context)
-
-
 def add_comment():
     pass
 
