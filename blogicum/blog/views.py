@@ -50,6 +50,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.author = self.request.user
+        form.instance.pub_date = timezone.now()
         return super().form_valid(form)
 
 
@@ -71,6 +72,13 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     form_class = UserForm
     template_name = 'blog/user.html'
     success_url = reverse_lazy('blog:index')
+
+
+def edit_profile(request):
+    template_name = 'blog/user.html'
+    form = UserForm
+    context = {'form': form}
+    return render(request, template_name, context)
 
 
 def add_comment():
