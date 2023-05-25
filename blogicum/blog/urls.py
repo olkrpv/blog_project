@@ -26,6 +26,6 @@ urlpatterns = [
         views.category_posts,
         name='category_posts'
     ),
-    path('profile/<slug:username_slug>/', views.profile, name='profile'),
+    path('profile/<slug:username_slug>/', views.ProfileDetailView.as_view(), name='profile'),
     path('edit_profile/<slug:username_slug>', views.UserUpdateView.as_view(), name='edit_profile'),
 ]

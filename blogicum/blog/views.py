@@ -20,36 +20,72 @@ def get_published_posts():
     )
 
 
-def profile(request, username_slug):
+# def profile(request, username_slug):
+#     template_name = 'blog/profile.html'
+#
+#     user_profile = get_object_or_404(User, username=username_slug)
+#
+#     author_posts = get_published_posts().filter(author=user_profile.id)
+#
+#     if user_profile == request.user:
+#         author_posts = Post.objects.select_related(
+#             'location', 'category', 'author'
+#         ).filter(author=user_profile.id)
+#
+#     paginator = Paginator(author_posts, 10)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+#     context = {'profile': user_profile, 'page_obj': page_obj}
+#     return render(request, template_name, context)
+
+
+class ProfileDetailView(DetailView):
+    model = User
     template_name = 'blog/profile.html'
+    slug_field = 'username'
+    slug_url_kwarg = 'username_slug'
 
-    user_profile = get_object_or_404(
-        User.objects.all(),
-        username=username_slug
-    )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        author_posts = get_published_posts().filter(author=self.object.id)
 
-    author_posts = get_published_posts().filter(author=user_profile.id)
-    paginator = Paginator(author_posts, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    context = {'profile': user_profile, 'page_obj': page_obj}
-    return render(request, template_name, context)
+        if self.object == self.request.user:
+            author_posts = Post.objects.select_related(
+                'location', 'category', 'author'
+            ).filter(author=self.object.id)
+
+        paginator = Paginator(author_posts, 10)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        context['profile'] = self.object
+        context['page_obj'] = page_obj
+        return context
 
 
 class UserUpdateView(LoginRequiredMixin, UpdateView):
     model = User
+    template_name = 'blog/user.html'
     form_class = UserForm
     slug_field = 'username'
     slug_url_kwarg = 'username_slug'
-    template_name = 'blog/user.html'
-    success_url = reverse_lazy('blog:index')
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:profile',
+            kwargs={'username_slug': self.object.username}
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        # Получаем объект по первичному ключу и автору или вызываем 404 ошибку.
+        get_object_or_404(User, username=kwargs['username_slug'], id=request.user.id)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class PostListView(ListView):
     model = Post
+    template_name = 'blog/index.html'
     queryset = get_published_posts()
     paginate_by = 10
-    template_name = 'blog/index.html'
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -57,22 +93,28 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     form_class = PostForm
     template_name = 'blog/create.html'
 
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.pub_date = timezone.now()
+        return super().form_valid(form)
+
     def get_success_url(self):
         return reverse_lazy(
             'blog:profile',
             kwargs={'username_slug': self.request.user.username}
         )
 
-    def form_valid(self, form):
-        form.instance.author = self.request.user
-        form.instance.pub_date = timezone.now()
-        return super().form_valid(form)
-
 
 class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        instance = get_object_or_404(Post, pk=kwargs['pk'])
+        if instance.author != request.user:
+            return redirect('blog:post_detail', instance.id)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse_lazy(
@@ -121,6 +163,12 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     model = Comment
     form_class = CommentForm
     template_name = 'blog/comment.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        instance = get_object_or_404(Comment, pk=kwargs['pk'])
+        if instance.author != request.user:
+            return redirect('blog:post_detail', instance.post.id)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse_lazy(
