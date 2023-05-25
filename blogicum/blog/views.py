@@ -10,6 +10,9 @@ from blog.models import Category, Post, User, Comment
 from .forms import PostForm, UserForm, CommentForm
 
 
+POSTS_ON_PAGE: int = 10
+
+
 def get_published_posts():
     return Post.objects.select_related(
         'location', 'category', 'author'
@@ -54,7 +57,7 @@ class ProfileDetailView(DetailView):
                 'location', 'category', 'author'
             ).filter(author=self.object.id)
 
-        paginator = Paginator(author_posts, 10)
+        paginator = Paginator(author_posts, POSTS_ON_PAGE)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         context['profile'] = self.object
@@ -85,7 +88,12 @@ class PostListView(ListView):
     model = Post
     template_name = 'blog/index.html'
     queryset = get_published_posts()
-    paginate_by = 10
+    paginate_by = POSTS_ON_PAGE
+
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     context['comment_count'] = Comment.objects.count()
+    #     return context
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -146,6 +154,10 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         context['form'] = {'instance': self.object}
         return context
 
+    def dispatch(self, request, *args, **kwargs):
+        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
 
 @login_required
 def add_comment(request, pk):
@@ -181,6 +193,10 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_success_url(self):
         return reverse_lazy(
             'blog:post_detail',
@@ -198,7 +214,7 @@ def category_posts(request, category_slug):
     )
 
     post_list = get_published_posts().filter(category__slug=category_slug)
-    paginator = Paginator(post_list, 10)
+    paginator = Paginator(post_list, POSTS_ON_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = {'page_obj': page_obj, 'category': category}
