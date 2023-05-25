@@ -90,11 +90,6 @@ class PostListView(ListView):
     queryset = get_published_posts()
     paginate_by = POSTS_ON_PAGE
 
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     context['comment_count'] = Comment.objects.count()
-    #     return context
-
 
 class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
