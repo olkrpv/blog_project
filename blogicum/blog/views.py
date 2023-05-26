@@ -1,9 +1,10 @@
+from django.db.models import Count
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import get_object_or_404, render, redirect, get_list_or_404
 from django.utils import timezone
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from blog.models import Category, Post, User, Comment
@@ -20,7 +21,9 @@ def get_published_posts():
         pub_date__lte=timezone.now(),
         is_published=True,
         category__is_published=True,
-    )
+    ).annotate(
+        comment_count=Count('comments')
+    ).order_by('-pub_date')
 
 
 # def profile(request, username_slug):
@@ -55,7 +58,9 @@ class ProfileDetailView(DetailView):
         if self.object == self.request.user:
             author_posts = Post.objects.select_related(
                 'location', 'category', 'author'
-            ).filter(author=self.object.id)
+            ).filter(author=self.object.id).annotate(
+                comment_count=Count('comments')
+            ).order_by('-pub_date')
 
         paginator = Paginator(author_posts, POSTS_ON_PAGE)
         page_number = self.request.GET.get('page')
@@ -65,7 +70,7 @@ class ProfileDetailView(DetailView):
         return context
 
 
-class UserUpdateView(LoginRequiredMixin, UpdateView):
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = User
     template_name = 'blog/user.html'
     form_class = UserForm
@@ -79,7 +84,6 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         )
 
     def dispatch(self, request, *args, **kwargs):
-        # Получаем объект по первичному ключу и автору или вызываем 404 ошибку.
         get_object_or_404(User, username=kwargs['username_slug'], id=request.user.id)
         return super().dispatch(request, *args, **kwargs)
 
@@ -154,16 +158,34 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         return super().dispatch(request, *args, **kwargs)
 
 
-@login_required
-def add_comment(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    form = CommentForm(request.POST)
-    if form.is_valid():
-        comment = form.save(commit=False)
-        comment.author = request.user
-        comment.post = post
-        comment.save()
-    return redirect('blog:post_detail', pk=pk)
+# @login_required
+# def add_comment(request, pk):
+#     post = get_object_or_404(Post, pk=pk)
+#     form = CommentForm(request.POST)
+#     if form.is_valid():
+#         comment = form.save(commit=False)
+#         comment.author = request.user
+#         comment.post = post
+#         comment.save()
+#     return redirect('blog:post_detail', pk=pk)
+
+
+class CommentCreateView(LoginRequiredMixin, CreateView):
+    post_object = None
+    model = Comment
+    form_class = CommentForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.post_object = get_object_or_404(Post, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.post = self.post_object
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('blog:post_detail', kwargs={'pk': self.post_object.pk})
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
@@ -214,3 +236,22 @@ def category_posts(request, category_slug):
     page_obj = paginator.get_page(page_number)
     context = {'page_obj': page_obj, 'category': category}
     return render(request, template_name, context)
+
+
+class CategoryPostListView(ListView):
+    model = Post
+    template_name = 'blog/category.html'
+    paginate_by = POSTS_ON_PAGE
+
+    def get_queryset(self):
+        self.category = get_object_or_404(
+            Category,
+            slug=self.kwargs['category_slug'],
+            is_published=True
+        )
+        return get_published_posts().filter(category__slug=self.category.slug)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['category'] = self.category
+        return context
