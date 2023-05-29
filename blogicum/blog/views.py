@@ -1,14 +1,14 @@
-from django.db.models import Count
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone
-from django.urls import reverse_lazy, reverse
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.db.models import Count
 from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
+                                  UpdateView)
 
-from blog.models import Category, Post, User, Comment
-from .forms import PostForm, UserForm, CommentForm
-
+from blog.forms import CommentForm, PostForm, UserForm
+from .models import Category, Comment, Post, User
 
 POSTS_ON_PAGE: int = 10
 
