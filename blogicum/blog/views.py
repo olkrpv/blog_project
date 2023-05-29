@@ -1,10 +1,10 @@
 from django.db.models import Count
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, render, redirect, get_list_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.http import Http404
 
 from blog.models import Category, Post, User, Comment
 from .forms import PostForm, UserForm, CommentForm
@@ -23,50 +23,6 @@ def get_published_posts():
     ).annotate(
         comment_count=Count('comments')
     ).order_by('-pub_date')
-
-
-# def profile(request, username_slug):
-#     template_name = 'blog/profile.html'
-#
-#     user_profile = get_object_or_404(User, username=username_slug)
-#
-#     author_posts = get_published_posts().filter(author=user_profile.id)
-#
-#     if user_profile == request.user:
-#         author_posts = Post.objects.select_related(
-#             'location', 'category', 'author'
-#         ).filter(author=user_profile.id)
-#
-#     paginator = Paginator(author_posts, 10)
-#     page_number = request.GET.get('page')
-#     page_obj = paginator.get_page(page_number)
-#     context = {'profile': user_profile, 'page_obj': page_obj}
-#     return render(request, template_name, context)
-
-
-# class ProfileDetailView(DetailView):
-#     model = User
-#     template_name = 'blog/profile.html'
-#     slug_field = 'username'
-#     slug_url_kwarg = 'username_slug'
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         author_posts = get_published_posts().filter(author=self.object.id)
-#
-#         if self.object == self.request.user:
-#             author_posts = Post.objects.select_related(
-#                 'location', 'category', 'author'
-#             ).filter(author=self.object.id).annotate(
-#                 comment_count=Count('comments')
-#             ).order_by('-pub_date')
-#
-#         paginator = Paginator(author_posts, POSTS_ON_PAGE)
-#         page_number = self.request.GET.get('page')
-#         page_obj = paginator.get_page(page_number)
-#         context['profile'] = self.object
-#         context['page_obj'] = page_obj
-#         return context
 
 
 class ProfileListView(ListView):
@@ -94,24 +50,6 @@ class ProfileListView(ListView):
         context = super().get_context_data(**kwargs)
         context['profile'] = self.user
         return context
-
-
-# class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-#     model = User
-#     template_name = 'blog/user.html'
-#     form_class = UserForm
-#     slug_field = 'username'
-#     slug_url_kwarg = 'username_slug'
-#
-#     def get_success_url(self):
-#         return reverse_lazy(
-#             'blog:profile',
-#             kwargs={'username_slug': self.object.username}
-#         )
-#
-#     def dispatch(self, request, *args, **kwargs):
-#         get_object_or_404(User, username=kwargs['username_slug'], id=request.user.id)
-#         return super().dispatch(request, *args, **kwargs)
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
@@ -143,7 +81,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.author = self.request.user
-        form.instance.pub_date = timezone.now()
+        # form.instance.pub_date = timezone.now()
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -194,21 +132,15 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         context['form'] = {'instance': self.object}
         return context
 
+    # def dispatch(self, request, *args, **kwargs):
+    #     get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
+    #     return super().dispatch(request, *args, **kwargs)
+
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            raise Http404('Страница не найдена')
         get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
         return super().dispatch(request, *args, **kwargs)
-
-
-# @login_required
-# def add_comment(request, pk):
-#     post = get_object_or_404(Post, pk=pk)
-#     form = CommentForm(request.POST)
-#     if form.is_valid():
-#         comment = form.save(commit=False)
-#         comment.author = request.user
-#         comment.post = post
-#         comment.save()
-#     return redirect('blog:post_detail', pk=pk)
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
@@ -251,7 +183,13 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
 
+    # def dispatch(self, request, *args, **kwargs):
+    #     get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
+    #     return super().dispatch(request, *args, **kwargs)
+
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            raise Http404('Страница не найдена')
         get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
         return super().dispatch(request, *args, **kwargs)
 
@@ -260,23 +198,6 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
             'blog:post_detail',
             kwargs={'pk': self.object.post.id}
         )
-
-
-# def category_posts(request, category_slug):
-#     template_name = 'blog/category.html'
-#
-#     category = get_object_or_404(
-#         Category.objects.values('title', 'description'),
-#         slug=category_slug,
-#         is_published=True,
-#     )
-#
-#     post_list = get_published_posts().filter(category__slug=category_slug)
-#     paginator = Paginator(post_list, POSTS_ON_PAGE)
-#     page_number = request.GET.get('page')
-#     page_obj = paginator.get_page(page_number)
-#     context = {'page_obj': page_obj, 'category': category}
-#     return render(request, template_name, context)
 
 
 class CategoryPostListView(ListView):
