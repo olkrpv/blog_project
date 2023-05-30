@@ -1,9 +1,15 @@
 from django import forms
+from django.utils import timezone
 
 from .models import Comment, Post, User
 
 
 class PostForm(forms.ModelForm):
+    pub_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        initial=timezone.now(),
+        label='Дата публикации'
+    )
 
     class Meta:
         model = Post
@@ -11,9 +17,6 @@ class PostForm(forms.ModelForm):
             'title', 'text', 'image',
             'pub_date',
             'location', 'category')
-        widgets = {
-            'pub_date': forms.DateTimeInput(attrs={'type': 'datetime-local'})
-        }
 
 
 class UserForm(forms.ModelForm):
