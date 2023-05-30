@@ -126,16 +126,16 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'blog/create.html'
     success_url = reverse_lazy('blog:index')
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = {'instance': self.object}
-        return context
-
     def get_object(self, queryset=None):
         return get_object_or_404(
             Post, pk=self.kwargs['pk'],
             author=self.request.user
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = {'instance': self.object}
+        return context
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
@@ -178,11 +178,11 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
 
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            raise Http404('Страница не найдена')
-        get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
-        return super().dispatch(request, *args, **kwargs)
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            Comment, pk=self.kwargs['pk'],
+            author=self.request.user
+        )
 
     def get_success_url(self):
         return reverse_lazy(
