@@ -61,7 +61,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def get_success_url(self):
-        return reverse_lazy(
+        return reverse(
             'blog:profile',
             kwargs={'username_slug': self.object.username}
         )
@@ -84,7 +84,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy(
+        return reverse(
             'blog:profile',
             kwargs={'username_slug': self.request.user.username}
         )
@@ -102,7 +102,7 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse_lazy(
+        return reverse(
             'blog:post_detail',
             kwargs={'pk': self.object.id}
         )
@@ -157,6 +157,12 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     form_class = CommentForm
     template_name = 'blog/comment.html'
 
+    # def form_valid(self, form):
+    #     instance = get_object_or_404(Comment, pk=self.kwargs['pk'])
+    #     if instance.author != self.request.user:
+    #         return redirect('blog:post_detail', instance.post.id)
+    #     return super().form_valid(form)
+
     def dispatch(self, request, *args, **kwargs):
         instance = get_object_or_404(Comment, pk=kwargs['pk'])
         if instance.author != request.user:
@@ -164,7 +170,7 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse_lazy(
+        return reverse(
             'blog:post_detail',
             kwargs={'pk': self.object.post.id}
         )
@@ -181,7 +187,7 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
         )
 
     def get_success_url(self):
-        return reverse_lazy(
+        return reverse(
             'blog:post_detail',
             kwargs={'pk': self.object.post.id}
         )
