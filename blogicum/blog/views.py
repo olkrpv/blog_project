@@ -182,10 +182,6 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
 
-    # def dispatch(self, request, *args, **kwargs):
-    #     get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
-    #     return super().dispatch(request, *args, **kwargs)
-
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             raise Http404('Страница не найдена')
