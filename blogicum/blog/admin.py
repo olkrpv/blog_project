@@ -26,10 +26,16 @@ class LocationAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+@admin.display(description='Комментарии')
+def comment_count(obj):
+    return obj.comments.count()
+
+
 class PostAdmin(admin.ModelAdmin):
     list_display = (
         'title', 'author', 'category',
         'location', 'created_at', 'is_published',
+        comment_count,
     )
     list_editable = ('is_published',)
     search_fields = ('title',)
