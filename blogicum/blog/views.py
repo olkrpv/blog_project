@@ -131,15 +131,11 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         context['form'] = {'instance': self.object}
         return context
 
-    # def dispatch(self, request, *args, **kwargs):
-    #     get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
-    #     return super().dispatch(request, *args, **kwargs)
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            raise Http404('Страница не найдена')
-        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
-        return super().dispatch(request, *args, **kwargs)
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            Post, pk=self.kwargs['pk'],
+            author=self.request.user
+        )
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
