@@ -6,9 +6,14 @@ from .models import Comment, Post, User
 
 class PostForm(forms.ModelForm):
     pub_date = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-        initial=timezone.now(),
-        label='Дата публикации'
+        widget=forms.DateTimeInput(
+            attrs={'type': 'datetime-local'},
+            format='%Y-%m-%dT%H:%M'
+        ),
+        initial=timezone.now,
+        label='Дата публикации',
+        help_text='Если установить дату и время в будущем — '
+                  'можно делать отложенные публикации.'
     )
 
     class Meta:
