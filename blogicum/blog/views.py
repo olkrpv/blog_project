@@ -38,9 +38,14 @@ class ProfileListView(ListView):
 
         if self.request.user == self.user:
 
-            return Post.objects.select_related(
+            # return Post.objects.select_related(
+            #     'location', 'category', 'author'
+            # ).filter(author=self.user.id).annotate(
+            #     comment_count=Count('comments')
+            # ).order_by('-pub_date')
+            return self.user.posts.select_related(
                 'location', 'category', 'author'
-            ).filter(author=self.user.id).annotate(
+            ).annotate(
                 comment_count=Count('comments')
             ).order_by('-pub_date')
 
@@ -48,6 +53,21 @@ class ProfileListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # self.user = get_object_or_404(
+        #     User,
+        #     username=self.kwargs['username_slug']
+        # )
+        #
+        # if self.request.user == self.user:
+        #     user_posts = self.user.posts.select_related(
+        #         'location', 'category', 'author'
+        #     ).annotate(
+        #         comment_count=Count('comments')
+        #     ).order_by('-pub_date')
+        # else:
+        #     user_posts = get_published_posts().filter(author=self.user.id)
+        #
+        # context['object_list'] = user_posts
         context['profile'] = self.user
         return context
 
@@ -149,7 +169,7 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'pk': self.post_object.pk})
+        return reverse('blog:post_detail', kwargs={'pk': self.kwargs['pk']})
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
