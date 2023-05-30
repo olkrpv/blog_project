@@ -78,7 +78,8 @@ class Post(PublishedAndCreatedModel):
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        verbose_name='Категория'
+        verbose_name='Категория',
+        related_name='posts'
     )
     image = models.ImageField(
         'Изображение',
