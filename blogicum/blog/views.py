@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -30,44 +30,43 @@ class ProfileListView(ListView):
     template_name = 'blog/profile.html'
     paginate_by = POSTS_ON_PAGE
 
-    def get_queryset(self):
+    # def get_queryset(self):
+    #     self.user = get_object_or_404(
+    #         User,
+    #         username=self.kwargs['username_slug']
+    #     )
+    #
+    #     if self.request.user == self.user:
+    #
+    #         # return Post.objects.select_related(
+    #         #     'location', 'category', 'author'
+    #         # ).filter(author=self.user.id).annotate(
+    #         #     comment_count=Count('comments')
+    #         # ).order_by('-pub_date')
+    #         return self.user.posts.select_related(
+    #             'location', 'category', 'author'
+    #         ).annotate(
+    #             comment_count=Count('comments')
+    #         ).order_by('-pub_date')
+    #
+    #     return get_published_posts().filter(author=self.user.id)
+
+    def get_context_data(self, **kwargs):
         self.user = get_object_or_404(
             User,
             username=self.kwargs['username_slug']
         )
 
         if self.request.user == self.user:
-
-            # return Post.objects.select_related(
-            #     'location', 'category', 'author'
-            # ).filter(author=self.user.id).annotate(
-            #     comment_count=Count('comments')
-            # ).order_by('-pub_date')
-            return self.user.posts.select_related(
+            user_posts = self.user.posts.select_related(
                 'location', 'category', 'author'
             ).annotate(
                 comment_count=Count('comments')
             ).order_by('-pub_date')
+        else:
+            user_posts = get_published_posts().filter(author=self.user.id)
 
-        return get_published_posts().filter(author=self.user.id)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # self.user = get_object_or_404(
-        #     User,
-        #     username=self.kwargs['username_slug']
-        # )
-        #
-        # if self.request.user == self.user:
-        #     user_posts = self.user.posts.select_related(
-        #         'location', 'category', 'author'
-        #     ).annotate(
-        #         comment_count=Count('comments')
-        #     ).order_by('-pub_date')
-        # else:
-        #     user_posts = get_published_posts().filter(author=self.user.id)
-        #
-        # context['object_list'] = user_posts
+        context = super().get_context_data(object_list=user_posts, **kwargs)
         context['profile'] = self.user
         return context
 
@@ -188,6 +187,12 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
         if instance.author != request.user:
             return redirect('blog:post_detail', instance.post.id)
         return super().dispatch(request, *args, **kwargs)
+
+    # def get_object(self, queryset=None):
+    #     instance = get_object_or_404(Comment, pk=self.kwargs['pk'])
+    #     if instance.author != self.request.user:
+    #         return redirect('blog:post_detail', instance.post.id)
+    #     return instance
 
     def get_success_url(self):
         return reverse(
