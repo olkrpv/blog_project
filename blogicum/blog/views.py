@@ -163,9 +163,9 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
     form_class = CommentForm
 
     def form_valid(self, form):
-        self.post_object = get_object_or_404(Post, pk=self.kwargs['pk'])
+        post_object = get_object_or_404(Post, pk=self.kwargs['pk'])
         form.instance.author = self.request.user
-        form.instance.post = self.post_object
+        form.instance.post = post_object
         return super().form_valid(form)
 
     def get_success_url(self):
