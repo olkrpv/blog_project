@@ -14,7 +14,6 @@ from django.views.generic import (
 from .forms import CommentForm, PostForm, UserForm
 from .models import Category, Comment, Post, User
 
-
 POSTS_ON_PAGE: int = 10
 
 
@@ -24,22 +23,22 @@ class ProfileListView(ListView):
     paginate_by = POSTS_ON_PAGE
 
     def get_context_data(self, **kwargs):
-        self.user = get_object_or_404(
+        user = get_object_or_404(
             User,
             username=self.kwargs['username_slug']
         )
 
-        if self.request.user == self.user:
-            user_posts = self.user.posts.select_related(
+        if self.request.user == user:
+            user_posts = user.posts.select_related(
                 'location', 'category', 'author'
             ).annotate(
                 comment_count=Count('comments')
             ).order_by('-pub_date')
         else:
-            user_posts = Post.published_objects.filter(author=self.user.id)
+            user_posts = Post.published_objects.filter(author=user.id)
 
         context = super().get_context_data(object_list=user_posts, **kwargs)
-        context['profile'] = self.user
+        context['profile'] = user
         return context
 
 
@@ -184,13 +183,13 @@ class CategoryPostListView(ListView):
     paginate_by = POSTS_ON_PAGE
 
     def get_context_data(self, **kwargs):
-        self.category = get_object_or_404(
+        category = get_object_or_404(
             Category,
             slug=self.kwargs['category_slug'],
             is_published=True
         )
 
-        category_posts = self.category.posts.select_related(
+        category_posts = category.posts.select_related(
             'location', 'category', 'author'
         ).filter(
             pub_date__lte=timezone.now(),
@@ -200,5 +199,5 @@ class CategoryPostListView(ListView):
         ).order_by('-pub_date')
 
         context = super().get_context_data(object_list=category_posts, **kwargs)
-        context['category'] = self.category
+        context['category'] = category
         return context
