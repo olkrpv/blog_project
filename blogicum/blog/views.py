@@ -198,6 +198,9 @@ class CategoryPostListView(ListView):
             comment_count=Count('comments')
         ).order_by('-pub_date')
 
-        context = super().get_context_data(object_list=category_posts, **kwargs)
+        context = super().get_context_data(
+            object_list=category_posts,
+            **kwargs
+        )
         context['category'] = category
         return context
