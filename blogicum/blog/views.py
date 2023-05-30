@@ -4,10 +4,15 @@ from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
-                                  UpdateView)
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView
+)
 
-from blog.forms import CommentForm, PostForm, UserForm
+from .forms import CommentForm, PostForm, UserForm
 from .models import Category, Comment, Post, User
 
 POSTS_ON_PAGE: int = 10
